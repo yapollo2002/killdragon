@@ -26,19 +26,21 @@ canvas {
   color: #ffc107;
 }
 
-/* --- Touch Controls using CSS Grid --- */
+/* --- Correct D-Pad Layout using CSS Grid --- */
 #controls {
   margin-top: 15px;
   display: grid;
-  grid-template-columns: 70px 70px 70px;
-  grid-template-rows: 70px 70px 70px;
+  width: 210px; /* Fixed width for the whole controller */
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: auto;
   grid-template-areas:
-    ". up ."
+    ".    up    ."
     "left . right"
-    ". down .";
+    ".   down   .";
   gap: 5px;
 }
 
+/* Assigning each button to its area in the grid */
 #up-btn { grid-area: up; }
 #down-btn { grid-area: down; }
 #left-btn { grid-area: left; }
@@ -46,16 +48,17 @@ canvas {
 
 .control-btn {
   width: 100%;
-  height: 100%;
+  height: 65px;
   background-color: #555;
   color: white;
   font-size: 28px;
   border: 2px solid #777;
   border-radius: 10px;
-  user-select: none; /* Prevents text selection on hold */
-  -webkit-tap-highlight-color: transparent; /* Removes blue tap highlight on mobile */
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
+/* Visual feedback for when a button is pressed */
 .control-btn:active {
   background-color: #777;
 }
