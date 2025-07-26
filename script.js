@@ -1,3 +1,6 @@
+
+**script.js**
+```javascript
 const canvas = document.getElementById('game-board');
 const ctx = canvas.getContext('2d');
 const statusDisplay = document.getElementById('status');
@@ -12,7 +15,6 @@ const player = {
  color: 'yellow'
 };
 
-// Use 'let' so we can modify the array when a dragon is defeated
 let dragons = [
  { x: 0, y: 0 },
  { x: gridSize - 1, y: 0 },
@@ -22,9 +24,7 @@ let dragons = [
 
 const hiddenItems = [];
 const itemMap = new Map();
-// Use a Set to store unique collected item types
 const collectedItemTypes = new Set();
-
 const allItemTypes = ['wire', 'stink', 'stone'];
 
 // Ensure at least one of each item type is placed
@@ -44,28 +44,24 @@ allItemTypes.forEach(type => {
  }
 });
 
-
 function updateStatus() {
  if (collectedItemTypes.size === 0) {
   statusDisplay.textContent = 'Items Collected: None';
  } else {
-  // Convert Set to array, capitalize first letter, and join
   const itemsText = [...collectedItemTypes].map(item => item.charAt(0).toUpperCase() + item.slice(1)).join(', ');
   statusDisplay.textContent = `Items Collected: ${itemsText}`;
  }
 
  if (collectedItemTypes.size === allItemTypes.length) {
     statusDisplay.textContent += ' - You can now defeat dragons!';
-    statusDisplay.style.color = '#28a745'; // Green color for "ready" status
+    statusDisplay.style.color = '#28a745';
  }
 }
 
 function draw() {
- // Fill the background with green
- ctx.fillStyle = '#2a5d2a'; // A nice green color
+ ctx.fillStyle = '#2a5d2a';
  ctx.fillRect(0, 0, canvas.width, canvas.height);
 
- // Draw black grid lines so every cell is visible
  ctx.strokeStyle = '#000';
  ctx.lineWidth = 2;
  for (let i = 0; i < gridSize; i++) {
@@ -74,17 +70,14 @@ function draw() {
   }
  }
 
- // Draw the dragons
  for (const dragon of dragons) {
   ctx.fillStyle = 'red';
   ctx.fillRect(dragon.x * cellSize, dragon.y * cellSize, cellSize, cellSize);
  }
 
- // Draw the player
  ctx.fillStyle = player.color;
  ctx.fillRect(player.x * cellSize, player.y * cellSize, cellSize, cellSize);
 
- // Show the item type on the current cell if it exists and hasn't been found
  const playerPosKey = `${player.x},${player.y}`;
  if (itemMap.has(playerPosKey)) {
   const item = itemMap.get(playerPosKey);
@@ -93,7 +86,6 @@ function draw() {
       collectedItemTypes.add(item.type);
       updateStatus();
   }
-  // Keep displaying the item text on the square
   ctx.fillStyle = 'blue';
   ctx.font = '16px Arial';
   ctx.textAlign = 'center';
@@ -110,43 +102,45 @@ function draw() {
  }
 }
 
-function handleKeyDown(e) {
-  if (gameOver) return; // Stop player movement if game is won
+// --- Player Movement Logic ---
+function movePlayer(dx, dy) {
+    if (gameOver) return;
 
- let newX = player.x;
- let newY = player.y;
+    let newX = player.x + dx;
+    let newY = player.y + dy;
 
- switch (e.key) {
-  case 'ArrowUp': newY--; break;
-  case 'ArrowDown': newY++; break;
-  case 'ArrowLeft': newX--; break;
-  case 'ArrowRight': newX++; break;
- }
-
- // Boundary check
- if (newX >= 0 && newX < gridSize && newY >= 0 && newY < gridSize) {
-  player.x = newX;
-  player.y = newY;
- }
- 
- // Dragon-slaying logic
- if (collectedItemTypes.size === allItemTypes.length) {
-    // Attempt to slay a dragon
-    const originalDragonCount = dragons.length;
-    dragons = dragons.filter(d => !(d.x === player.x && d.y === player.y));
+    if (newX >= 0 && newX < gridSize && newY >= 0 && newY < gridSize) {
+        player.x = newX;
+        player.y = newY;
+    }
     
-    if (dragons.length < originalDragonCount) { // A dragon was slain
-        if (dragons.length === 0) {
-            // All dragons defeated
+    if (collectedItemTypes.size === allItemTypes.length) {
+        const originalDragonCount = dragons.length;
+        dragons = dragons.filter(d => !(d.x === player.x && d.y === player.y));
+        if (dragons.length < originalDragonCount && dragons.length === 0) {
             gameOver = true;
         }
     }
- }
-
- draw();
+    draw();
 }
 
+// --- Event Listeners ---
+// Keyboard Listener
+document.addEventListener('keydown', e => {
+    switch (e.key) {
+        case 'ArrowUp': movePlayer(0, -1); break;
+        case 'ArrowDown': movePlayer(0, 1); break;
+        case 'ArrowLeft': movePlayer(-1, 0); break;
+        case 'ArrowRight': movePlayer(1, 0); break;
+    }
+});
+
+// Touch Control Listeners
+document.getElementById('up-btn').addEventListener('click', () => movePlayer(0, -1));
+document.getElementById('down-btn').addEventListener('click', () => movePlayer(0, 1));
+document.getElementById('left-btn').addEventListener('click', () => movePlayer(-1, 0));
+document.getElementById('right-btn').addEventListener('click', () => movePlayer(1, 0));
+
 // Initial Setup
-document.addEventListener('keydown', handleKeyDown);
 updateStatus();
 draw();
