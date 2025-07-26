@@ -1,12 +1,21 @@
 // --- Element Selection ---
-// These are selected right away.
 const canvas = document.getElementById('game-board');
 const ctx = canvas.getContext('2d');
 const statusDisplay = document.getElementById('status');
 
+// --- DYNAMIC CANVAS SIZING ---
+// This makes the drawing surface match the new CSS size of the canvas.
+function resizeCanvas() {
+    const size = canvas.clientWidth; // Get the actual size from CSS
+    canvas.width = size; // Set the drawing surface width
+    canvas.height = size; // Set the drawing surface height
+    draw(); // Redraw the game anytime the size changes
+}
+
 // --- Game State Variables ---
 const gridSize = 11;
-const cellSize = canvas.width / gridSize;
+// Cell size is now a 'let' because it will be recalculated
+let cellSize = canvas.width / gridSize;
 let gameOver = false;
 
 const player = { x: 5, y: 5, color: 'yellow' };
@@ -19,20 +28,14 @@ const collectedItemTypes = new Set();
 const allItemTypes = ['wire', 'stink', 'stone'];
 
 // --- Global Function for Movement ---
-// This function MUST be global so the `onclick` in the HTML can find it.
 function handleMove(dx, dy) {
     if (gameOver) return;
-
-    // Move the player
     const newX = player.x + dx;
     const newY = player.y + dy;
     if (newX >= 0 && newX < gridSize && newY >= 0 && newY < gridSize) {
         player.x = newX;
         player.y = newY;
     }
-
-    // --- Check Game Logic ---
-    // 1. Item discovery
     const playerPosKey = `${player.x},${player.y}`;
     if (itemMap.has(playerPosKey)) {
         const item = itemMap.get(playerPosKey);
@@ -42,8 +45,6 @@ function handleMove(dx, dy) {
             updateStatus();
         }
     }
-
-    // 2. Dragon slaying
     if (collectedItemTypes.size === allItemTypes.length) {
         const dragonIndex = dragons.findIndex(d => d.x === player.x && d.y === player.y);
         if (dragonIndex > -1) {
@@ -53,13 +54,10 @@ function handleMove(dx, dy) {
             }
         }
     }
-    
-    // 3. Redraw the game
     draw();
 }
 
 // --- Other Game Functions ---
-
 function updateStatus() {
     const itemsText = [...collectedItemTypes].map(item => item.charAt(0).toUpperCase() + item.slice(1)).join(', ');
     statusDisplay.textContent = collectedItemTypes.size > 0 ? `Items Collected: ${itemsText}` : 'Items Collected: None';
@@ -70,6 +68,9 @@ function updateStatus() {
 }
 
 function draw() {
+    // Recalculate cell size every time we draw, in case the canvas size changed
+    cellSize = canvas.width / gridSize;
+
     ctx.fillStyle = '#2a5d2a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.strokeStyle = '#000';
@@ -90,7 +91,7 @@ function draw() {
     if (itemMap.has(playerPosKey)) {
         const item = itemMap.get(playerPosKey);
         ctx.fillStyle = 'blue';
-        ctx.font = 'bold 16px Arial';
+        ctx.font = `bold ${cellSize * 0.3}px Arial`; // Font size scales with cell size
         ctx.textAlign = 'center';
         ctx.fillText(item.type, player.x * cellSize + cellSize / 2, player.y * cellSize + cellSize / 1.5);
     }
@@ -98,7 +99,7 @@ function draw() {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = 'white';
-        ctx.font = 'bold 50px Arial';
+        ctx.font = `bold ${cellSize}px Arial`;
         ctx.textAlign = 'center';
         ctx.fillText('YOU WIN!', canvas.width / 2, canvas.height / 2);
     }
@@ -110,18 +111,16 @@ function setupGame() {
         while (!placed) {
             const x = Math.floor(Math.random() * gridSize);
             const y = Math.floor(Math.random() * gridSize);
-            const isDragonSquare = dragons.some(d => d.x === x && d.y === y);
-            const isPlayerStart = (x === player.x && y === player.y);
-            if (!isDragonSquare && !isPlayerStart && !itemMap.has(`${x},${y}`)) {
+            if (!dragons.some(d => d.x === x && d.y === y) && !(player.x === x && player.y === y) && !itemMap.has(`${x},${y}`)) {
                 itemMap.set(`${x},${y}`, { type, discovered: false });
                 placed = true;
             }
         }
     });
-    draw(); // Initial draw of the board
+    resizeCanvas(); // Initial size calculation
 }
 
-// Keyboard listener (this should still work)
+// --- Event Listeners ---
 document.addEventListener('keydown', (e) => {
     switch (e.key) {
         case 'ArrowUp': handleMove(0, -1); break;
@@ -130,6 +129,9 @@ document.addEventListener('keydown', (e) => {
         case 'ArrowRight': handleMove(1, 0); break;
     }
 });
+
+// Redraw the canvas if the window is resized (e.g., phone rotation)
+window.addEventListener('resize', resizeCanvas);
 
 // --- Initial Game Start ---
 setupGame();
