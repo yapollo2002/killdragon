@@ -21,7 +21,8 @@ body, html {
     height: 100%;
 }
 
-h1, #status {
+h1 {
+    font-size: 5vmin;
     margin: 1vh 0;
 }
 
@@ -33,18 +34,34 @@ canvas {
     border: 2px solid #555;
 }
 
-/* --- THIS IS THE FIX --- */
-/* A robust 3x3 grid for a perfect D-pad layout */
+/* --- NEW STATUS BAR STYLES --- */
+#status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3.5vmin;
+    margin: 1.5vh 0;
+    height: 40px; /* Give the status bar a consistent height */
+}
+
+#collected-items-icons {
+    display: flex;
+    align-items: center;
+    margin-left: 10px; /* Space after the text */
+    height: 100%;
+}
+
+.collected-icon {
+    height: 100%; /* Make icons fill the height of the status bar */
+    margin: 0 3px; /* Add some space between icons */
+}
+
 #controls {
     margin-top: 15px;
     display: grid;
     width: 210px;
-
-    /* Define 3 columns and 3 rows */
     grid-template-columns: 70px 70px 70px;
     grid-template-rows: 70px 70px 70px;
-
-    /* Define the D-pad shape using grid areas */
     grid-template-areas:
         ".    up    ."
         "left . right"
@@ -52,7 +69,6 @@ canvas {
     gap: 5px;
 }
 
-/* Place each button in its assigned area */
 #up-btn { grid-area: up; }
 #down-btn { grid-area: down; }
 #left-btn { grid-area: left; }

@@ -1,93 +1,163 @@
 // --- Element Selection ---
 const canvas = document.getElementById('game-board');
 const ctx = canvas.getContext('2d');
-const statusDisplay = document.getElementById('status');
 
 // --- Game State & Images ---
 const gridSize = 11;
-let cellSize; // This will be calculated in the resize function
+let cellSize;
+let gameOver = false;
+
 const player = { x: 5, y: 5 };
-const dragonImage = new Image();
+let dragons = [
+    { x: 0, y: 0 }, { x: gridSize - 1, y: 0 },
+    { x: 0, y: gridSize - 1 }, { x: gridSize - 1, y: gridSize - 1 }
+];
+const itemMap = new Map();
+const collectedItemTypes = new Set();
+// THIS ARRAY HAS BEEN CHANGED
+const allItemTypes = ['wire', 'stick', 'stone'];
+
+// Create Image objects for all our pictograms
 const playerImage = new Image();
+const dragonImage = new Image();
+const wireImage = new Image();
+const stickImage = new Image(); // Changed from stinkImage
+const stoneImage = new Image();
+
+// THIS OBJECT HAS BEEN CHANGED
+const itemImages = {
+    wire: wireImage,
+    stick: stickImage, // Changed from stink
+    stone: stoneImage
+};
 
 // This function synchronizes the drawing surface with the CSS size
 function resizeCanvas() {
-    // Get the actual size of the canvas element from CSS
     const size = canvas.clientWidth;
-
-    // Set the canvas's internal drawing buffer to be the same square size
     canvas.width = size;
     canvas.height = size;
-
-    // Recalculate the size of each cell
     cellSize = canvas.width / gridSize;
-
-    // Redraw the game with the new sizes
     draw();
-    console.log("Canvas resized and redrawn.");
 }
 
 // --- CORE DRAWING FUNCTION ---
 function draw() {
-    if (!cellSize) return; // Don't draw if the size hasn't been calculated yet
+    if (!cellSize) return;
 
-    // Draw checkerboard background
     for (let row = 0; row < gridSize; row++) {
         for (let col = 0; col < gridSize; col++) {
-            if ((row + col) % 2 === 0) {
-                ctx.fillStyle = '#6b8e23'; // Olive green
-            } else {
-                ctx.fillStyle = '#f0e68c'; // Khaki yellow
-            }
+            ctx.fillStyle = (row + col) % 2 === 0 ? '#6b8e23' : '#f0e68c';
             ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
         }
     }
 
-    // Draw grid lines
     ctx.strokeStyle = '#000';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 1;
     for (let i = 0; i < gridSize; i++) {
         for (let j = 0; j < gridSize; j++) {
             ctx.strokeRect(i * cellSize, j * cellSize, cellSize, cellSize);
         }
     }
 
-    // Draw images
-    ctx.drawImage(dragonImage, 0 * cellSize, 0 * cellSize, cellSize, cellSize);
-    ctx.drawImage(dragonImage, (gridSize - 1) * cellSize, 0 * cellSize, cellSize, cellSize);
-    ctx.drawImage(dragonImage, 0 * cellSize, (gridSize - 1) * cellSize, cellSize, cellSize);
-    ctx.drawImage(dragonImage, (gridSize - 1) * cellSize, (gridSize - 1) * cellSize, cellSize, cellSize);
+    for (const [key, item] of itemMap.entries()) {
+        const [x, y] = key.split(',').map(Number);
+        if (player.x === x && player.y === y) {
+            ctx.drawImage(item.image, x * cellSize, y * cellSize, cellSize, cellSize);
+        }
+    }
+
+    dragons.forEach(dragon => ctx.drawImage(dragonImage, dragon.x * cellSize, dragon.y * cellSize, cellSize, cellSize));
     ctx.drawImage(playerImage, player.x * cellSize, player.y * cellSize, cellSize, cellSize);
+
+    if (gameOver) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = 'white';
+        ctx.font = `bold ${cellSize}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.fillText('YOU WIN!', canvas.width / 2, canvas.height / 2);
+    }
 }
 
-// --- MOVEMENT FUNCTION ---
+// --- GAME LOGIC FUNCTIONS ---
 function handleMove(dx, dy) {
+    if (gameOver) return;
     const newX = player.x + dx;
     const newY = player.y + dy;
     if (newX >= 0 && newX < gridSize && newY >= 0 && newY < gridSize) {
         player.x = newX;
         player.y = newY;
     }
+
+    const playerPosKey = `${player.x},${player.y}`;
+    if (itemMap.has(playerPosKey)) {
+        const item = itemMap.get(playerPosKey);
+        if (!item.discovered) {
+            item.discovered = true;
+            collectedItemTypes.add(item.type);
+            updateStatus();
+        }
+    }
+
+    if (collectedItemTypes.size === allItemTypes.length) {
+        const dragonIndex = dragons.findIndex(d => d.x === player.x && d.y === player.y);
+        if (dragonIndex > -1) {
+            dragons.splice(dragonIndex, 1);
+            if (dragons.length === 0) {
+                gameOver = true;
+            }
+        }
+    }
     draw();
 }
 
-// --- STARTUP LOGIC ---
-console.log("Script started. Loading images...");
-playerImage.src = 'player.png';
-dragonImage.src = 'dragon.png';
-
-window.onload = () => {
-    console.log("Window.onload event fired.");
-    if (playerImage.width === 0 || dragonImage.width === 0) {
-        alert("Could not load images. Check that player.png and dragon.png are correct.");
-        return;
+function updateStatus() {
+    // THIS FUNCTION HAS BEEN CHANGED
+    if (collectedItemTypes.has('wire')) {
+        document.getElementById('icon-wire').style.display = 'inline';
     }
+    if (collectedItemTypes.has('stick')) { // Changed from stink
+        document.getElementById('icon-stick').style.display = 'inline'; // Changed from icon-stink
+    }
+    if (collectedItemTypes.has('stone')) {
+        document.getElementById('icon-stone').style.display = 'inline';
+    }
+}
 
-    // Perform the initial resize and draw
+// --- STARTUP LOGIC ---
+function setupGame() {
+    allItemTypes.forEach(type => {
+        let placed = false;
+        while (!placed) {
+            const x = Math.floor(Math.random() * gridSize);
+            const y = Math.floor(Math.random() * gridSize);
+            if (!dragons.some(d => d.x === x && d.y === y) && !(player.x === x && player.y === y) && !itemMap.has(`${x},${y}`)) {
+                itemMap.set(`${x},${y}`, { type: type, image: itemImages[type], discovered: false });
+                placed = true;
+            }
+        }
+    });
     resizeCanvas();
+}
 
-    // Activate controls
-    console.log("Activating controls.");
+function loadImage(imageObject, src) {
+    return new Promise((resolve, reject) => {
+        imageObject.onload = () => resolve(imageObject);
+        imageObject.onerror = reject;
+        imageObject.src = src;
+    });
+}
+
+// THIS LOADER HAS BEEN CHANGED
+Promise.all([
+    loadImage(playerImage, 'player.png'),
+    loadImage(dragonImage, 'dragon.png'),
+    loadImage(wireImage, 'wire.png'),
+    loadImage(stickImage, 'stick.png'), // Changed from stink
+    loadImage(stoneImage, 'stone.png')
+]).then(() => {
+    console.log("All images loaded successfully!");
+    setupGame();
     document.addEventListener('keydown', (e) => {
         switch (e.key) {
             case 'ArrowUp': handleMove(0, -1); break;
@@ -96,12 +166,8 @@ window.onload = () => {
             case 'ArrowRight': handleMove(1, 0); break;
         }
     });
-
-    document.getElementById('up-btn').onclick = () => handleMove(0, -1);
-    document.getElementById('down-btn').onclick = () => handleMove(0, 1);
-    document.getElementById('left-btn').onclick = () => handleMove(-1, 0);
-    document.getElementById('right-btn').onclick = () => handleMove(1, 0);
-};
-
-// Also resize the canvas if the user rotates their phone or changes the window size
-window.onresize = resizeCanvas;
+    window.onresize = resizeCanvas;
+}).catch(error => {
+    console.error("Error loading images:", error);
+    alert("Error loading game images. Make sure all .png files are in the correct folder.");
+});

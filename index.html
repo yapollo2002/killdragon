@@ -10,17 +10,24 @@
 
 <div id="game-container">
     <h1>Dragon Slayer</h1>
-
-    <!-- IMPORTANT: The width and height attributes have been removed. -->
     <canvas id="game-board"></canvas>
 
-    <div id="status">Items Collected: None</div>
+    <!-- The status bar now looks for the stick icon -->
+    <div id="status">
+        <span>Items Collected: </span>
+        <div id="collected-items-icons">
+            <img id="icon-wire" src="wire.png" class="collected-icon" style="display: none;">
+            <!-- THIS LINE HAS BEEN CHANGED -->
+            <img id="icon-stick" src="stick.png" class="collected-icon" style="display: none;">
+            <img id="icon-stone" src="stone.png" class="collected-icon" style="display: none;">
+        </div>
+    </div>
 
     <div id="controls">
-        <button id="up-btn" class="control-btn">▲</button>
-        <button id="left-btn" class="control-btn">◄</button>
-        <button id="right-btn" class="control-btn">►</button>
-        <button id="down-btn" class="control-btn">▼</button>
+        <button id="up-btn" class="control-btn" onclick="handleMove(0, -1)">▲</button>
+        <button id="left-btn" class="control-btn" onclick="handleMove(-1, 0)">◄</button>
+        <button id="right-btn" class="control-btn" onclick="handleMove(1, 0)">►</button>
+        <button id="down-btn" class="control-btn" onclick="handleMove(0, 1)">▼</button>
     </div>
 </div>
 
