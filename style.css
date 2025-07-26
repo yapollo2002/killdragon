@@ -1,40 +1,51 @@
-body {
+body, html {
     background-color: #333;
     color: #fff;
     font-family: sans-serif;
     text-align: center;
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    overflow: hidden; /* Prevent scrolling */
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
-    margin: 0;
-    overflow: hidden;
 }
 
 #game-container {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center; /* Center content vertically */
+    width: 100%;
+    height: 100%;
 }
 
 h1 {
-    margin-bottom: 10px;
+    font-size: 5vmin; /* Font size scales with the screen */
+    margin: 1vh 0;
 }
 
 canvas {
+    /* Canvas will be 80% of the smallest screen dimension, but no more than 550px */
+    width: 80vmin;
+    height: 80vmin;
+    max-width: 550px;
+    max-height: 550px;
     border: 2px solid #555;
 }
 
 #status {
-    margin: 10px 0;
-    font-size: 1.2em;
-    color: #ffc107;
+    font-size: 3.5vmin; /* Font size scales */
+    margin: 1.5vh 0;
 }
 
 #controls {
-    margin-top: 15px;
     display: grid;
-    grid-template-columns: 70px 70px 70px;
+    /* Control pad scales with the screen */
+    width: 50vmin;
+    max-width: 250px;
+    grid-template-columns: 1fr 1fr 1fr;
     grid-template-rows: auto;
     grid-template-areas:
         ".    up    ."
@@ -43,21 +54,20 @@ canvas {
     gap: 5px;
 }
 
-#up-btn { grid-area: up; }
-#down-btn { grid-area: down; }
-#left-btn { grid-area: left; }
-#right-btn { grid-area: right; }
-
 .control-btn {
     width: 100%;
-    height: 65px;
+    /* Aspect-ratio keeps buttons square */
+    aspect-ratio: 1 / 1;
     background-color: #555;
     color: white;
-    font-size: 28px;
+    font-size: 5vmin;
     border: 2px solid #777;
     border-radius: 10px;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .control-btn:active {
