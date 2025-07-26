@@ -10,20 +10,17 @@
 
     <div id="game-container">
         <h1>Dragon Slayer</h1>
-        <canvas id="game-board" width="550" height="550"></canvas>
+        <!-- IMPORTANT: width and height attributes are removed from here -->
+        <canvas id="game-board"></canvas>
         <div id="status">Items Collected: None</div>
-
-        <!-- THIS IS THE KEY CHANGE! -->
-        <!-- The onclick attribute directly calls the JavaScript function. -->
         <div id="controls">
-            <button id="up-btn" class="control-btn" onclick="handleMove(0, -1)">▲</button>
-            <button id="left-btn" class="control-btn" onclick="handleMove(-1, 0)">◄</button>
-            <button id="right-btn" class="control-btn" onclick="handleMove(1, 0)">►</button>
-            <button id="down-btn" class="control-btn" onclick="handleMove(0, 1)">▼</button>
+            <button class="control-btn" onclick="handleMove(0, -1)">▲</button>
+            <button class="control-btn" onclick="handleMove(-1, 0)">◄</button>
+            <button class="control-btn" onclick="handleMove(1, 0)">►</button>
+            <button class="control-btn" onclick="handleMove(0, 1)">▼</button>
         </div>
     </div>
 
-    <!-- The script is still at the end of the body for best practice -->
     <script src="script.js"></script>
 </body>
 </html>
