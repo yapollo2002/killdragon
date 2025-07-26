@@ -1,64 +1,163 @@
 body {
-  background-color: #333;
-  color: #fff;
-  font-family: sans-serif;
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  margin: 0;
-  overflow: hidden; /* Prevents scrolling */
+    background-color: #333;
+    color: #fff;
+    font-family: sans-serif;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    overflow: hidden;
+}
+
+#game-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* This styles the new debug message */
+#debug-log {
+    color: #ff5555;
+    font-weight: bold;
+    height: 20px;
+    font-family: monospace;
 }
 
 canvas {
-  background-color: #000;
-  border: 2px solid #555;
-  max-width: 90vw;
-  max-height: 60vh;
-  object-fit: contain;
+    border: 2px solid #555;
 }
 
 #status {
-  margin: 10px 0;
-  font-size: 1.2em;
-  color: #ffc107;
+    margin: 10px 0;
+    font-size: 1.2em;
+    color: #ffc107;
 }
 
-/* --- Correct D-Pad Layout using CSS Grid --- */
 #controls {
-  margin-top: 15px;
-  display: grid;
-  width: 210px; /* Fixed width for the whole controller */
-  grid-template-columns: 1fr 1fr 1fr;
-  grid-template-rows: auto;
-  grid-template-areas:
-    ".    up    ."
-    "left . right"
-    ".   down   .";
-  gap: 5px;
+    margin-top: 15px;
+    display: grid;
+    grid-template-columns: 70px 70px 70px;
+    grid-template-rows: auto;
+    grid-template-areas:
+        ".    up    ."
+        "left . right"
+        ".   down   .";
+    gap: 5px;
 }
 
-/* Assigning each button to its area in the grid */
 #up-btn { grid-area: up; }
 #down-btn { grid-area: down; }
 #left-btn { grid-area: left; }
 #right-btn { grid-area: right; }
 
 .control-btn {
-  width: 100%;
-  height: 65px;
-  background-color: #555;
-  color: white;
-  font-size: 28px;
-  border: 2px solid #777;
-  border-radius: 10px;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
+    width: 100%;
+    height: 65px;
+    background-color: #555;
+    color: white;
+    font-size: 28px;
+    border: 2px solid #777;
+    border-radius: 10px;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
-/* Visual feedback for when a button is pressed */
 .control-btn:active {
-  background-color: #777;
-}
+    background-color: #777;
+}```
+
+**3. script.js** (Completely rewritten for simplicity and reliability)
+```javascript
+// This wrapper ensures the script runs only after the page is fully loaded
+document.addEventListener('DOMContentLoaded', () => {
+
+    // --- Element Selection ---
+    // We check if elements exist. If not, the script stops.
+    const debugLog = document.getElementById('debug-log');
+    const canvas = document.getElementById('game-board');
+    if (!canvas || !debugLog) {
+        console.error("Critical error: Canvas or Debug Log element not found.");
+        return;
+    }
+    const ctx = canvas.getContext('2d');
+    
+    // --- Game Variables ---
+    const gridSize = 11;
+    const cellSize = canvas.width / gridSize;
+    const player = { x: 5, y: 5, color: 'yellow' };
+    const dragons = [
+        { x: 0, y: 0 }, { x: gridSize - 1, y: 0 },
+        { x: 0, y: gridSize - 1 }, { x: gridSize - 1, y: gridSize - 1 }
+    ];
+
+    // --- Core Drawing Function ---
+    // This function is responsible for drawing everything.
+    function drawGame() {
+        // Clear and draw the background
+        ctx.fillStyle = '#2a5d2a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Draw grid
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 2;
+        for (let i = 0; i < gridSize; i++) {
+            for (let j = 0; j < gridSize; j++) {
+                ctx.strokeRect(i * cellSize, j * cellSize, cellSize, cellSize);
+            }
+        }
+        
+        // Draw dragons
+        dragons.forEach(dragon => {
+            ctx.fillStyle = 'red';
+            ctx.fillRect(dragon.x * cellSize, dragon.y * cellSize, cellSize, cellSize);
+        });
+
+        // Draw player
+        ctx.fillStyle = player.color;
+        ctx.fillRect(player.x * cellSize, player.y * cellSize, cellSize, cellSize);
+    }
+
+    // --- THE MOST IMPORTANT FUNCTION ---
+    // This is called by every button and key press.
+    function handleInput(dx, dy) {
+        // Update debug log to show input was received
+        debugLog.textContent = `Input received! Moving (${dx}, ${dy})`;
+
+        // Calculate new position
+        const newX = player.x + dx;
+        const newY = player.y + dy;
+
+        // Check boundaries
+        if (newX >= 0 && newX < gridSize && newY >= 0 && newY < gridSize) {
+            player.x = newX;
+            player.y = newY;
+        }
+
+        // ALWAYS redraw the game after an input
+        drawGame();
+    }
+
+    // --- Setting up Event Listeners ---
+
+    // 1. Keyboard Controls
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowUp') handleInput(0, -1);
+        else if (e.key === 'ArrowDown') handleInput(0, 1);
+        else if (e.key === 'ArrowLeft') handleInput(-1, 0);
+        else if (e.key === 'ArrowRight') handleInput(1, 0);
+    });
+
+    // 2. Touch Controls
+    // Using `touchstart` is best for mobile. `e.preventDefault()` is crucial.
+    document.getElementById('up-btn').addEventListener('touchstart', (e) => { e.preventDefault(); handleInput(0, -1); });
+    document.getElementById('down-btn').addEventListener('touchstart', (e) => { e.preventDefault(); handleInput(0, 1); });
+    document.getElementById('left-btn').addEventListener('touchstart', (e) => { e.preventDefault(); handleInput(-1, 0); });
+    document.getElementById('right-btn').addEventListener('touchstart', (e) => { e.preventDefault(); handleInput(1, 0); });
+
+
+    // --- Initial Game Start ---
+    debugLog.textContent = 'Game initialized. Press keys or buttons.';
+    drawGame();
+});
