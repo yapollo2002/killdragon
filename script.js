@@ -3,22 +3,22 @@ const canvas = document.getElementById('game-board');
 const ctx = canvas.getContext('2d');
 const statusDisplay = document.getElementById('status');
 
-// --- DYNAMIC CANVAS SIZING ---
-// This makes the drawing surface match the new CSS size of the canvas.
-function resizeCanvas() {
-    const size = canvas.clientWidth; // Get the actual size from CSS
-    canvas.width = size; // Set the drawing surface width
-    canvas.height = size; // Set the drawing surface height
-    draw(); // Redraw the game anytime the size changes
-}
+// --- NEW: Image Loading ---
+// Create new Image objects to hold our pictograms
+const playerImage = new Image();
+const dragonImage = new Image();
+
+// Set the source of the images to the files you just saved
+playerImage.src = 'player.png';
+dragonImage.src = 'dragon.png';
 
 // --- Game State Variables ---
 const gridSize = 11;
-// Cell size is now a 'let' because it will be recalculated
 let cellSize = canvas.width / gridSize;
 let gameOver = false;
 
-const player = { x: 5, y: 5, color: 'yellow' };
+// The player object no longer needs a 'color' property
+const player = { x: 5, y: 5 };
 let dragons = [
     { x: 0, y: 0 }, { x: gridSize - 1, y: 0 },
     { x: 0, y: gridSize - 1 }, { x: gridSize - 1, y: gridSize - 1 }
@@ -68,9 +68,7 @@ function updateStatus() {
 }
 
 function draw() {
-    // Recalculate cell size every time we draw, in case the canvas size changed
     cellSize = canvas.width / gridSize;
-
     ctx.fillStyle = '#2a5d2a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.strokeStyle = '#000';
@@ -80,18 +78,22 @@ function draw() {
             ctx.strokeRect(i * cellSize, j * cellSize, cellSize, cellSize);
         }
     }
+
+    // --- MODIFIED: Draw Dragons ---
+    // Instead of fillRect, we now use drawImage for the dragons
     dragons.forEach(dragon => {
-        ctx.fillStyle = 'red';
-        ctx.fillRect(dragon.x * cellSize, dragon.y * cellSize, cellSize, cellSize);
+        ctx.drawImage(dragonImage, dragon.x * cellSize, dragon.y * cellSize, cellSize, cellSize);
     });
-    ctx.fillStyle = player.color;
-    ctx.fillRect(player.x * cellSize, player.y * cellSize, cellSize, cellSize);
+
+    // --- MODIFIED: Draw Player ---
+    // We also use drawImage for the player now
+    ctx.drawImage(playerImage, player.x * cellSize, player.y * cellSize, cellSize, cellSize);
 
     const playerPosKey = `${player.x},${player.y}`;
     if (itemMap.has(playerPosKey)) {
         const item = itemMap.get(playerPosKey);
         ctx.fillStyle = 'blue';
-        ctx.font = `bold ${cellSize * 0.3}px Arial`; // Font size scales with cell size
+        ctx.font = `bold ${cellSize * 0.3}px Arial`;
         ctx.textAlign = 'center';
         ctx.fillText(item.type, player.x * cellSize + cellSize / 2, player.y * cellSize + cellSize / 1.5);
     }
@@ -117,7 +119,14 @@ function setupGame() {
             }
         }
     });
-    resizeCanvas(); // Initial size calculation
+    resizeCanvas();
+}
+
+function resizeCanvas() {
+    const size = canvas.clientWidth;
+    canvas.width = size;
+    canvas.height = size;
+    draw();
 }
 
 // --- Event Listeners ---
@@ -129,9 +138,19 @@ document.addEventListener('keydown', (e) => {
         case 'ArrowRight': handleMove(1, 0); break;
     }
 });
-
-// Redraw the canvas if the window is resized (e.g., phone rotation)
 window.addEventListener('resize', resizeCanvas);
 
-// --- Initial Game Start ---
-setupGame();
+// --- MODIFIED: Initial Game Start ---
+// We need to wait for the images to load before we start the game.
+let imagesLoaded = 0;
+function onImageLoad() {
+    imagesLoaded++;
+    // Once both images are loaded, set up and start the game
+    if (imagesLoaded === 2) {
+        setupGame();
+    }
+}
+
+// Tell the images to call onImageLoad() when they are ready
+playerImage.onload = onImageLoad;
+dragonImage.onload = onImageLoad;
