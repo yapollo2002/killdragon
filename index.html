@@ -1,13 +1,25 @@
 <!DOCTYPE html>
 <html>
  <head>
- <title>2D Game</title>
- <link rel="stylesheet" href="style.css">
+  <title>2D Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <link rel="stylesheet" href="style.css">
  </head>
  <body>
   <h1>Dragon Slayer</h1>
   <canvas id="game-board" width="550" height="550"></canvas>
   <div id="status">Items Collected: None</div>
+
+  <!-- On-screen controls for mobile -->
+  <div id="controls">
+    <button id="up-btn" class="control-btn">▲</button>
+    <div class="middle-row">
+      <button id="left-btn" class="control-btn">◄</button>
+      <button id="right-btn" class="control-btn">►</button>
+    </div>
+    <button id="down-btn" class="control-btn">▼</button>
+  </div>
+
   <script src="script.js"></script>
  </body>
 </html>
