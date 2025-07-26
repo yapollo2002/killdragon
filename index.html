@@ -8,25 +8,22 @@
 </head>
 <body>
 
-    <div id="game-container">
-        <h1>Dragon Slayer</h1>
-        
-        <!-- Canvas for the game board -->
-        <canvas id="game-board"></canvas>
-        
-        <!-- Display for collected items -->
-        <div id="status">Items Collected: None</div>
+<div id="game-container">
+    <h1>Dragon Slayer</h1>
 
-        <!-- On-screen controls with correct IDs for CSS and onclick for JavaScript -->
-        <div id="controls">
-            <button id="up-btn" class="control-btn" onclick="handleMove(0, -1)">▲</button>
-            <button id="left-btn" class="control-btn" onclick="handleMove(-1, 0)">◄</button>
-            <button id="right-btn" class="control-btn" onclick="handleMove(1, 0)">►</button>
-            <button id="down-btn" class="control-btn" onclick="handleMove(0, 1)">▼</button>
-        </div>
+    <!-- IMPORTANT: The width and height attributes have been removed. -->
+    <canvas id="game-board"></canvas>
+
+    <div id="status">Items Collected: None</div>
+
+    <div id="controls">
+        <button id="up-btn" class="control-btn">▲</button>
+        <button id="left-btn" class="control-btn">◄</button>
+        <button id="right-btn" class="control-btn">►</button>
+        <button id="down-btn" class="control-btn">▼</button>
     </div>
+</div>
 
-    <!-- The JavaScript file is loaded at the end to ensure all HTML elements exist first -->
-    <script src="script.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
