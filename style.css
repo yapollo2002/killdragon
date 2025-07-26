@@ -40,24 +40,36 @@ canvas {
     margin: 1.5vh 0;
 }
 
+/* --- THIS IS THE FIX --- */
+/* A more robust grid for the D-pad layout */
 #controls {
     display: grid;
-    /* Control pad scales with the screen */
-    width: 50vmin;
-    max-width: 250px;
+    /* Define 3 columns and 3 rows of equal size */
     grid-template-columns: 1fr 1fr 1fr;
-    grid-template-rows: auto;
+    grid-template-rows: 1fr 1fr 1fr;
+    /* This creates the classic D-pad shape */
     grid-template-areas:
         ".    up    ."
         "left . right"
         ".   down   .";
+    
+    /* Control pad scales with the screen */
+    width: 50vmin;
+    max-width: 250px;
+    /* This ensures the grid itself is square */
+    aspect-ratio: 1 / 1;
     gap: 5px;
 }
 
+/* Place each button in its assigned grid area */
+#up-btn { grid-area: up; }
+#down-btn { grid-area: down; }
+#left-btn { grid-area: left; }
+#right-btn { grid-area: right; }
+
 .control-btn {
     width: 100%;
-    /* Aspect-ratio keeps buttons square */
-    aspect-ratio: 1 / 1;
+    height: 100%; /* Make the button fill its grid cell */
     background-color: #555;
     color: white;
     font-size: 5vmin;
