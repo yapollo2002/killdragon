@@ -25,31 +25,34 @@ h1, #status {
     margin: 1vh 0;
 }
 
-/* THIS IS THE FIX: We force the canvas to be a square */
 canvas {
-    /* Sets the canvas to be 80% of the smallest screen dimension (width or height) */
     width: 80vmin;
     height: 80vmin;
-
-    /* Prevents the canvas from getting too big on desktop screens */
     max-width: 550px;
     max-height: 550px;
-
     border: 2px solid #555;
 }
 
+/* --- THIS IS THE FIX --- */
+/* A robust 3x3 grid for a perfect D-pad layout */
 #controls {
     margin-top: 15px;
     display: grid;
     width: 210px;
+
+    /* Define 3 columns and 3 rows */
     grid-template-columns: 70px 70px 70px;
-    grid-template-rows: 70px 70px;
+    grid-template-rows: 70px 70px 70px;
+
+    /* Define the D-pad shape using grid areas */
     grid-template-areas:
         ".    up    ."
-        "left right down";
+        "left . right"
+        ".   down   .";
     gap: 5px;
 }
 
+/* Place each button in its assigned area */
 #up-btn { grid-area: up; }
 #down-btn { grid-area: down; }
 #left-btn { grid-area: left; }
@@ -63,4 +66,7 @@ canvas {
     font-size: 28px;
     border: 2px solid #777;
     border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
