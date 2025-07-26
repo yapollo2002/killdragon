@@ -1,5 +1,5 @@
 // --- Element Selection ---
-// Because the script is at the end of the body, these elements are guaranteed to exist.
+// These are selected right away.
 const canvas = document.getElementById('game-board');
 const ctx = canvas.getContext('2d');
 const statusDisplay = document.getElementById('status');
@@ -18,28 +18,51 @@ const itemMap = new Map();
 const collectedItemTypes = new Set();
 const allItemTypes = ['wire', 'stink', 'stone'];
 
-// --- Game Logic Functions ---
+// --- Global Function for Movement ---
+// This function MUST be global so the `onclick` in the HTML can find it.
+function handleMove(dx, dy) {
+    if (gameOver) return;
 
-function setupItems() {
-    allItemTypes.forEach(type => {
-        let placed = false;
-        while (!placed) {
-            const x = Math.floor(Math.random() * gridSize);
-            const y = Math.floor(Math.random() * gridSize);
-            const isDragonSquare = dragons.some(d => d.x === x && d.y === y);
-            const isPlayerStart = (x === player.x && y === player.y);
-            if (!isDragonSquare && !isPlayerStart && !itemMap.has(`${x},${y}`)) {
-                itemMap.set(`${x},${y}`, { type, discovered: false });
-                placed = true;
+    // Move the player
+    const newX = player.x + dx;
+    const newY = player.y + dy;
+    if (newX >= 0 && newX < gridSize && newY >= 0 && newY < gridSize) {
+        player.x = newX;
+        player.y = newY;
+    }
+
+    // --- Check Game Logic ---
+    // 1. Item discovery
+    const playerPosKey = `${player.x},${player.y}`;
+    if (itemMap.has(playerPosKey)) {
+        const item = itemMap.get(playerPosKey);
+        if (!item.discovered) {
+            item.discovered = true;
+            collectedItemTypes.add(item.type);
+            updateStatus();
+        }
+    }
+
+    // 2. Dragon slaying
+    if (collectedItemTypes.size === allItemTypes.length) {
+        const dragonIndex = dragons.findIndex(d => d.x === player.x && d.y === player.y);
+        if (dragonIndex > -1) {
+            dragons.splice(dragonIndex, 1);
+            if (dragons.length === 0) {
+                gameOver = true;
             }
         }
-    });
+    }
+    
+    // 3. Redraw the game
+    draw();
 }
+
+// --- Other Game Functions ---
 
 function updateStatus() {
     const itemsText = [...collectedItemTypes].map(item => item.charAt(0).toUpperCase() + item.slice(1)).join(', ');
     statusDisplay.textContent = collectedItemTypes.size > 0 ? `Items Collected: ${itemsText}` : 'Items Collected: None';
-
     if (collectedItemTypes.size === allItemTypes.length) {
         statusDisplay.textContent += ' - You can now defeat dragons!';
         statusDisplay.style.color = '#28a745';
@@ -81,43 +104,24 @@ function draw() {
     }
 }
 
-function handleMove(dx, dy) {
-    if (gameOver) return;
-
-    const newX = player.x + dx;
-    const newY = player.y + dy;
-
-    if (newX >= 0 && newX < gridSize && newY >= 0 && newY < gridSize) {
-        player.x = newX;
-    }
-
-    // Check for item discovery
-    const playerPosKey = `${player.x},${player.y}`;
-    if (itemMap.has(playerPosKey)) {
-        const item = itemMap.get(playerPosKey);
-        if (!item.discovered) {
-            item.discovered = true;
-            collectedItemTypes.add(item.type);
-            updateStatus();
-        }
-    }
-
-    // Check for dragon slaying
-    if (collectedItemTypes.size === allItemTypes.length) {
-        const dragonIndex = dragons.findIndex(d => d.x === player.x && d.y === player.y);
-        if (dragonIndex > -1) {
-            dragons.splice(dragonIndex, 1);
-            if (dragons.length === 0) {
-                gameOver = true;
+function setupGame() {
+    allItemTypes.forEach(type => {
+        let placed = false;
+        while (!placed) {
+            const x = Math.floor(Math.random() * gridSize);
+            const y = Math.floor(Math.random() * gridSize);
+            const isDragonSquare = dragons.some(d => d.x === x && d.y === y);
+            const isPlayerStart = (x === player.x && y === player.y);
+            if (!isDragonSquare && !isPlayerStart && !itemMap.has(`${x},${y}`)) {
+                itemMap.set(`${x},${y}`, { type, discovered: false });
+                placed = true;
             }
         }
-    }
-    
-    draw();
+    });
+    draw(); // Initial draw of the board
 }
 
-// --- EVENT LISTENERS ---
-
+// Keyboard listener (this should still work)
 document.addEventListener('keydown', (e) => {
     switch (e.key) {
         case 'ArrowUp': handleMove(0, -1); break;
@@ -127,11 +131,5 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-document.getElementById('up-btn').addEventListener('touchstart', (e) => { e.preventDefault(); handleMove(0, -1); });
-document.getElementById('down-btn').addEventListener('touchstart', (e) => { e.preventDefault(); handleMove(0, 1); });
-document.getElementById('left-btn').addEventListener('touchstart', (e) => { e.preventDefault(); handleMove(-1, 0); });
-document.getElementById('right-btn').addEventListener('touchstart', (e) => { e.preventDefault(); handleMove(1, 0); });
-
 // --- Initial Game Start ---
-setupItems();
-draw();
+setupGame();
