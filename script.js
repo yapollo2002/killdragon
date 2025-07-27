@@ -14,20 +14,21 @@ let dragons = [
 ];
 const itemMap = new Map();
 const collectedItemTypes = new Set();
-// THIS ARRAY HAS BEEN CHANGED
 const allItemTypes = ['wire', 'stick', 'stone'];
 
 // Create Image objects for all our pictograms
 const playerImage = new Image();
 const dragonImage = new Image();
 const wireImage = new Image();
-const stickImage = new Image(); // Changed from stinkImage
+const stickImage = new Image();
 const stoneImage = new Image();
+// NEW: Create an Image object for your grass texture
+const grassImage = new Image();
 
-// THIS OBJECT HAS BEEN CHANGED
+// A helper object to easily access the right image
 const itemImages = {
     wire: wireImage,
-    stick: stickImage, // Changed from stink
+    stick: stickImage,
     stone: stoneImage
 };
 
@@ -44,13 +45,15 @@ function resizeCanvas() {
 function draw() {
     if (!cellSize) return;
 
-    for (let row = 0; row < gridSize; row++) {
-        for (let col = 0; col < gridSize; col++) {
-            ctx.fillStyle = (row + col) % 2 === 0 ? '#6b8e23' : '#f0e68c';
-            ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
-        }
-    }
+    // --- THIS IS THE NEW PART ---
+    // Create a repeating pattern from your grass.png image
+    const grassPattern = ctx.createPattern(grassImage, 'repeat');
 
+    // Fill the entire canvas background with this pattern
+    ctx.fillStyle = grassPattern;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Draw grid lines on top of the grass texture
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 1;
     for (let i = 0; i < gridSize; i++) {
@@ -59,6 +62,7 @@ function draw() {
         }
     }
 
+    // Draw the item pictograms that are on the map
     for (const [key, item] of itemMap.entries()) {
         const [x, y] = key.split(',').map(Number);
         if (player.x === x && player.y === y) {
@@ -66,9 +70,11 @@ function draw() {
         }
     }
 
+    // Draw dragons and player
     dragons.forEach(dragon => ctx.drawImage(dragonImage, dragon.x * cellSize, dragon.y * cellSize, cellSize, cellSize));
     ctx.drawImage(playerImage, player.x * cellSize, player.y * cellSize, cellSize, cellSize);
 
+    // Draw win screen
     if (gameOver) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -112,16 +118,9 @@ function handleMove(dx, dy) {
 }
 
 function updateStatus() {
-    // THIS FUNCTION HAS BEEN CHANGED
-    if (collectedItemTypes.has('wire')) {
-        document.getElementById('icon-wire').style.display = 'inline';
-    }
-    if (collectedItemTypes.has('stick')) { // Changed from stink
-        document.getElementById('icon-stick').style.display = 'inline'; // Changed from icon-stink
-    }
-    if (collectedItemTypes.has('stone')) {
-        document.getElementById('icon-stone').style.display = 'inline';
-    }
+    if (collectedItemTypes.has('wire')) document.getElementById('icon-wire').style.display = 'inline';
+    if (collectedItemTypes.has('stick')) document.getElementById('icon-stick').style.display = 'inline';
+    if (collectedItemTypes.has('stone')) document.getElementById('icon-stone').style.display = 'inline';
 }
 
 // --- STARTUP LOGIC ---
@@ -148,16 +147,18 @@ function loadImage(imageObject, src) {
     });
 }
 
-// THIS LOADER HAS BEEN CHANGED
+// Load all 6 images, including the new grass.png, before starting the game
 Promise.all([
     loadImage(playerImage, 'player.png'),
     loadImage(dragonImage, 'dragon.png'),
     loadImage(wireImage, 'wire.png'),
-    loadImage(stickImage, 'stick.png'), // Changed from stink
-    loadImage(stoneImage, 'stone.png')
+    loadImage(stickImage, 'stick.png'),
+    loadImage(stoneImage, 'stone.png'),
+    loadImage(grassImage, 'grass.png') // Load the new grass texture
 ]).then(() => {
     console.log("All images loaded successfully!");
     setupGame();
+    // Activate controls after everything is ready
     document.addEventListener('keydown', (e) => {
         switch (e.key) {
             case 'ArrowUp': handleMove(0, -1); break;
