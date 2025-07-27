@@ -147,7 +147,7 @@ function loadImage(imageObject, src) {
     });
 }
 
-// Load all 6 images, including the new grass.png, before starting the game
+
 Promise.all([
     loadImage(playerImage, 'player.png'),
     loadImage(dragonImage, 'dragon.png'),
@@ -158,7 +158,7 @@ Promise.all([
 ]).then(() => {
     console.log("All images loaded successfully!");
     setupGame();
-    // Activate controls after everything is ready
+
     document.addEventListener('keydown', (e) => {
         switch (e.key) {
             case 'ArrowUp': handleMove(0, -1); break;
