@@ -16,16 +16,14 @@ const itemMap = new Map();
 const collectedItemTypes = new Set();
 const allItemTypes = ['wire', 'stick', 'stone'];
 
-// Create Image objects for all our pictograms
+// Image objects for all our pictograms
 const playerImage = new Image();
 const dragonImage = new Image();
 const wireImage = new Image();
 const stickImage = new Image();
 const stoneImage = new Image();
-// NEW: Create an Image object for your grass texture
 const grassImage = new Image();
 
-// A helper object to easily access the right image
 const itemImages = {
     wire: wireImage,
     stick: stickImage,
@@ -46,12 +44,14 @@ function draw() {
     if (!cellSize) return;
 
     // --- THIS IS THE NEW PART ---
-    // Create a repeating pattern from your grass.png image
-    const grassPattern = ctx.createPattern(grassImage, 'repeat');
-
-    // Fill the entire canvas background with this pattern
-    ctx.fillStyle = grassPattern;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Loop through every cell of the grid
+    for (let row = 0; row < gridSize; row++) {
+        for (let col = 0; col < gridSize; col++) {
+            // Draw your grass texture in each individual cell
+            // This creates a perfect tiled background.
+            ctx.drawImage(grassImage, col * cellSize, row * cellSize, cellSize, cellSize);
+        }
+    }
 
     // Draw grid lines on top of the grass texture
     ctx.strokeStyle = '#000';
@@ -147,18 +147,18 @@ function loadImage(imageObject, src) {
     });
 }
 
-
+// Load all images, including grass.png, before starting the game
 Promise.all([
     loadImage(playerImage, 'player.png'),
     loadImage(dragonImage, 'dragon.png'),
     loadImage(wireImage, 'wire.png'),
     loadImage(stickImage, 'stick.png'),
     loadImage(stoneImage, 'stone.png'),
-    loadImage(grassImage, 'grass.png') // Load the new grass texture
+    loadImage(grassImage, 'grass.png')
 ]).then(() => {
     console.log("All images loaded successfully!");
     setupGame();
-
+    // Activate controls after everything is ready
     document.addEventListener('keydown', (e) => {
         switch (e.key) {
             case 'ArrowUp': handleMove(0, -1); break;
