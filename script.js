@@ -6,17 +6,25 @@ const ctx = canvas.getContext('2d');
 const gridSize = 11;
 let cellSize;
 let gameOver = false;
+let gameInterval; // To hold the dragon's movement timer
 
-const player = { x: 5, y: 5 };
-let dragons = [
-    { x: 0, y: 0 }, { x: gridSize - 1, y: 0 },
-    { x: 0, y: gridSize - 1 }, { x: gridSize - 1, y: gridSize - 1 }
-];
+// Player will now have its position set randomly at the start
+const player = { x: 0, y: 0 };
+
+// NEW: A single dragon object with more properties
+const dragon = {
+    x: 0,
+    y: 0,
+    alive: true,
+    // The top-left corner of its 3x3 patrol zone
+    zoneX: 0,
+    zoneY: 0
+};
+
 const itemMap = new Map();
 const collectedItemTypes = new Set();
 const allItemTypes = ['wire', 'stick', 'stone'];
 
-// Image objects for all our pictograms
 const playerImage = new Image();
 const dragonImage = new Image();
 const wireImage = new Image();
@@ -43,17 +51,14 @@ function resizeCanvas() {
 function draw() {
     if (!cellSize) return;
 
-    // --- THIS IS THE NEW PART ---
-    // Loop through every cell of the grid
+    // Draw grass texture in each cell
     for (let row = 0; row < gridSize; row++) {
         for (let col = 0; col < gridSize; col++) {
-            // Draw your grass texture in each individual cell
-            // This creates a perfect tiled background.
             ctx.drawImage(grassImage, col * cellSize, row * cellSize, cellSize, cellSize);
         }
     }
 
-    // Draw grid lines on top of the grass texture
+    // Draw grid lines
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 1;
     for (let i = 0; i < gridSize; i++) {
@@ -62,7 +67,7 @@ function draw() {
         }
     }
 
-    // Draw the item pictograms that are on the map
+    // Draw the item pictograms on the map if the player is on top
     for (const [key, item] of itemMap.entries()) {
         const [x, y] = key.split(',').map(Number);
         if (player.x === x && player.y === y) {
@@ -70,8 +75,10 @@ function draw() {
         }
     }
 
-    // Draw dragons and player
-    dragons.forEach(dragon => ctx.drawImage(dragonImage, dragon.x * cellSize, dragon.y * cellSize, cellSize, cellSize));
+    // Draw the dragon (if alive) and the player
+    if (dragon.alive) {
+        ctx.drawImage(dragonImage, dragon.x * cellSize, dragon.y * cellSize, cellSize, cellSize);
+    }
     ctx.drawImage(playerImage, player.x * cellSize, player.y * cellSize, cellSize, cellSize);
 
     // Draw win screen
@@ -85,6 +92,29 @@ function draw() {
     }
 }
 
+// --- NEW: Dragon Movement Logic ---
+function moveDragon() {
+    if (!dragon.alive || gameOver) return;
+
+    // Pick a random direction: -1 (left/up), 0 (stay), or 1 (right/down)
+    const moveX = Math.floor(Math.random() * 3) - 1;
+    const moveY = Math.floor(Math.random() * 3) - 1;
+
+    const newX = dragon.x + moveX;
+    const newY = dragon.y + moveY;
+
+    // Check if the new position is INSIDE the 3x3 patrol zone
+    if (newX >= dragon.zoneX && newX < dragon.zoneX + 3 &&
+        newY >= dragon.zoneY && newY < dragon.zoneY + 3) {
+        dragon.x = newX;
+        dragon.y = newY;
+    }
+    // No "else" needed - if the move is invalid, the dragon just waits for the next turn.
+
+    draw(); // Redraw the game after the dragon moves
+}
+
+
 // --- GAME LOGIC FUNCTIONS ---
 function handleMove(dx, dy) {
     if (gameOver) return;
@@ -95,6 +125,7 @@ function handleMove(dx, dy) {
         player.y = newY;
     }
 
+    // Check for item discovery
     const playerPosKey = `${player.x},${player.y}`;
     if (itemMap.has(playerPosKey)) {
         const item = itemMap.get(playerPosKey);
@@ -105,13 +136,13 @@ function handleMove(dx, dy) {
         }
     }
 
-    if (collectedItemTypes.size === allItemTypes.length) {
-        const dragonIndex = dragons.findIndex(d => d.x === player.x && d.y === player.y);
-        if (dragonIndex > -1) {
-            dragons.splice(dragonIndex, 1);
-            if (dragons.length === 0) {
-                gameOver = true;
-            }
+    // UPDATED: Slaying logic for a single dragon
+    if (dragon.alive && collectedItemTypes.size === allItemTypes.length) {
+        // If player moves onto the dragon's square
+        if (player.x === dragon.x && player.y === dragon.y) {
+            dragon.alive = false; // The dragon is defeated!
+            gameOver = true;     // You win!
+            clearInterval(gameInterval); // Stop the dragon from moving
         }
     }
     draw();
@@ -125,18 +156,43 @@ function updateStatus() {
 
 // --- STARTUP LOGIC ---
 function setupGame() {
+    // 1. Set a random 3x3 patrol zone for the dragon
+    // Max starting corner is 8 (so the 3x3 zone ends at 10)
+    dragon.zoneX = Math.floor(Math.random() * (gridSize - 2));
+    dragon.zoneY = Math.floor(Math.random() * (gridSize - 2));
+
+    // 2. Place the dragon randomly within its zone
+    dragon.x = dragon.zoneX + Math.floor(Math.random() * 3);
+    dragon.y = dragon.zoneY + Math.floor(Math.random() * 3);
+
+    // 3. Place the player randomly, making sure it's NOT in the dragon's zone
+    do {
+        player.x = Math.floor(Math.random() * gridSize);
+        player.y = Math.floor(Math.random() * gridSize);
+    } while (
+        player.x >= dragon.zoneX && player.x < dragon.zoneX + 3 &&
+        player.y >= dragon.zoneY && player.y < dragon.zoneY + 3
+    );
+
+    // 4. Place items, making sure they are not in the dragon's zone or on the player
     allItemTypes.forEach(type => {
         let placed = false;
         while (!placed) {
             const x = Math.floor(Math.random() * gridSize);
             const y = Math.floor(Math.random() * gridSize);
-            if (!dragons.some(d => d.x === x && d.y === y) && !(player.x === x && player.y === y) && !itemMap.has(`${x},${y}`)) {
+            const isInDragonZone = x >= dragon.zoneX && x < dragon.zoneX + 3 && y >= dragon.zoneY && y < dragon.zoneY + 3;
+            const isOnPlayer = player.x === x && player.y === y;
+
+            if (!isInDragonZone && !isOnPlayer && !itemMap.has(`${x},${y}`)) {
                 itemMap.set(`${x},${y}`, { type: type, image: itemImages[type], discovered: false });
                 placed = true;
             }
         }
     });
+
     resizeCanvas();
+    // Start the dragon's movement timer
+    gameInterval = setInterval(moveDragon, 1000); // The dragon moves every 1 second
 }
 
 function loadImage(imageObject, src) {
@@ -147,7 +203,7 @@ function loadImage(imageObject, src) {
     });
 }
 
-// Load all images, including grass.png, before starting the game
+// Load all images before starting
 Promise.all([
     loadImage(playerImage, 'player.png'),
     loadImage(dragonImage, 'dragon.png'),
@@ -158,7 +214,7 @@ Promise.all([
 ]).then(() => {
     console.log("All images loaded successfully!");
     setupGame();
-    // Activate controls after everything is ready
+    // Activate controls
     document.addEventListener('keydown', (e) => {
         switch (e.key) {
             case 'ArrowUp': handleMove(0, -1); break;
