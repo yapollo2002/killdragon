@@ -10,7 +10,6 @@ let dragonDecisionInterval; // Timer for the dragon to CHOOSE where to go next
 
 const player = { x: 0, y: 0 };
 
-// NEW: The dragon object has more properties for smooth animation
 const dragon = {
     gridX: 0,       // The grid square it's on
     gridY: 0,
@@ -42,50 +41,60 @@ const itemImages = {
     stone: stoneImage
 };
 
+// This function synchronizes the drawing surface with the CSS size
+function resizeCanvas() {
+    const size = canvas.clientWidth;
+    canvas.width = size;
+    canvas.height = size;
+    cellSize = canvas.width / gridSize;
+
+    // Update dragon's pixel positions based on new cellSize
+    dragon.pixelX = dragon.gridX * cellSize;
+    dragon.pixelY = dragon.gridY * cellSize;
+    dragon.targetX = dragon.gridX * cellSize; // Reset target to current grid position
+    dragon.targetY = dragon.gridY * cellSize;
+    dragon.isMoving = false; // Stop ongoing movement during resize
+
+    draw();
+}
+
 // --- NEW: Main Game Loop ---
-// This function runs on every single frame to create smooth animation.
 function gameLoop() {
     if (gameOver) {
-        drawWinScreen(); // If game is over, just draw the win message
+        drawWinScreen();
         return;
     }
 
     // --- Dragon Animation Logic ---
     if (dragon.isMoving && dragon.alive) {
-        // Calculate direction vector from current position to target
         const dx = dragon.targetX - dragon.pixelX;
         const dy = dragon.targetY - dragon.pixelY;
         const distance = Math.sqrt(dx * dx + dy * dy);
 
-        // If the dragon is very close to its target, snap it into place
         if (distance < dragon.speed) {
             dragon.pixelX = dragon.targetX;
             dragon.pixelY = dragon.targetY;
             dragon.isMoving = false;
-            // Update the dragon's official grid position now that it has arrived
             dragon.gridX = Math.round(dragon.pixelX / cellSize);
             dragon.gridY = Math.round(dragon.pixelY / cellSize);
         } else {
-            // Otherwise, move the dragon a little bit closer to the target
             dragon.pixelX += (dx / distance) * dragon.speed;
             dragon.pixelY += (dy / distance) * dragon.speed;
         }
     }
 
-    draw(); // Redraw the entire game state on every frame
-    requestAnimationFrame(gameLoop); // Ask the browser to call this function again for the next frame
+    draw();
+    requestAnimationFrame(gameLoop);
 }
 
 // --- NEW: Dragon Decision Logic ---
-// This function runs on a timer and tells the dragon WHERE to go next.
 function decideDragonMove() {
-    if (dragon.isMoving || !dragon.alive) return; // Don't pick a new target if already moving
+    if (dragon.isMoving || !dragon.alive) return;
 
     // Pick a new random grid square within the 3x3 patrol zone
     const newGridX = dragon.zoneX + Math.floor(Math.random() * 3);
     const newGridY = dragon.zoneY + Math.floor(Math.random() * 3);
 
-    // If the new spot is different from the current one, start moving
     if (newGridX !== dragon.gridX || newGridY !== dragon.gridY) {
         dragon.targetX = newGridX * cellSize;
         dragon.targetY = newGridY * cellSize;
@@ -104,6 +113,7 @@ function draw() {
         }
     }
 
+    // Draw grid lines
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 1;
     for (let i = 0; i < gridSize; i++) {
@@ -112,7 +122,7 @@ function draw() {
         }
     }
 
-    // Draw items
+    // Draw the item pictograms that are on the map if the player is on top
     for (const [key, item] of itemMap.entries()) {
         const [x, y] = key.split(',').map(Number);
         if (player.x === x && player.y === y) {
@@ -120,7 +130,7 @@ function draw() {
         }
     }
 
-    // Draw dragon at its current PIXEL position, and player at its GRID position
+    // Draw the dragon (if alive) and the player
     if (dragon.alive) {
         ctx.drawImage(dragonImage, dragon.pixelX, dragon.pixelY, cellSize, cellSize);
     }
@@ -143,8 +153,10 @@ function handleMove(dx, dy) {
     const newY = player.y + dy;
     if (newX >= 0 && newX < gridSize && newY >= 0 && newY < gridSize) {
         player.x = newX;
+        player.y = newY; // <--- THIS WAS THE MISSING LINE!
     }
 
+    // Check for item discovery
     const playerPosKey = `${player.x},${player.y}`;
     if (itemMap.has(playerPosKey)) {
         const item = itemMap.get(playerPosKey);
@@ -163,6 +175,7 @@ function handleMove(dx, dy) {
             clearInterval(dragonDecisionInterval);
         }
     }
+    // No need to call draw() here, gameLoop will handle it.
 }
 
 function updateStatus() {
@@ -173,9 +186,21 @@ function updateStatus() {
 
 // --- STARTUP LOGIC ---
 function setupGame() {
+    // Clear previous game state if restarting
+    itemMap.clear();
+    collectedItemTypes.clear();
+    dragon.alive = true;
+    gameOver = false;
+    // Hide collected item icons on restart
+    document.getElementById('icon-wire').style.display = 'none';
+    document.getElementById('icon-stick').style.display = 'none';
+    document.getElementById('icon-stone').style.display = 'none';
+
+    // 1. Set a random 3x3 patrol zone for the dragon
     dragon.zoneX = Math.floor(Math.random() * (gridSize - 2));
     dragon.zoneY = Math.floor(Math.random() * (gridSize - 2));
 
+    // 2. Place the dragon randomly within its zone
     dragon.gridX = dragon.zoneX + Math.floor(Math.random() * 3);
     dragon.gridY = dragon.zoneY + Math.floor(Math.random() * 3);
 
@@ -184,7 +209,9 @@ function setupGame() {
     dragon.pixelY = dragon.gridY * cellSize;
     dragon.targetX = dragon.pixelX;
     dragon.targetY = dragon.pixelY;
+    dragon.isMoving = false;
 
+    // 3. Place the player randomly, making sure it's NOT in the dragon's zone
     do {
         player.x = Math.floor(Math.random() * gridSize);
         player.y = Math.floor(Math.random() * gridSize);
@@ -193,6 +220,7 @@ function setupGame() {
         player.y >= dragon.zoneY && player.y < dragon.zoneY + 3
     );
 
+    // 4. Place items, making sure they are not in the dragon's zone or on the player
     allItemTypes.forEach(type => {
         let placed = false;
         while (!placed) {
@@ -208,22 +236,11 @@ function setupGame() {
         }
     });
 
-    // The dragon will decide to move to a new spot every 2.5 seconds
-    dragonDecisionInterval = setInterval(decideDragonMove, 2500);
-}
-
-function resizeCanvas() {
-    const size = canvas.clientWidth;
-    canvas.width = size;
-    canvas.height = size;
-    cellSize = canvas.width / gridSize;
-    // When resizing, we must update the dragon's pixel positions too!
-    dragon.pixelX = dragon.gridX * cellSize;
-    dragon.pixelY = dragon.gridY * cellSize;
-    dragon.targetX = dragon.pixelX;
-    dragon.targetY = dragon.pixelY;
-    dragon.isMoving = false;
-    draw();
+    resizeCanvas();
+    // Clear any existing dragon movement interval before starting a new one
+    clearInterval(dragonDecisionInterval);
+    dragonDecisionInterval = setInterval(decideDragonMove, 2500); // Dragon decides new target every 2.5 seconds
+    updateStatus(); // Update status display to show "None"
 }
 
 function loadImage(imageObject, src) {
@@ -244,10 +261,10 @@ Promise.all([
     loadImage(grassImage, 'grass.png')
 ]).then(() => {
     console.log("All images loaded successfully!");
-    resizeCanvas(); // Do initial size calculation
-    setupGame();    // Set up all game objects
-    gameLoop();     // Start the continuous animation loop!
+    setupGame();    // Set up all game objects for the first time
+    requestAnimationFrame(gameLoop); // Start the continuous animation loop!
 
+    // Activate controls after everything is ready
     document.addEventListener('keydown', (e) => {
         switch (e.key) {
             case 'ArrowUp': handleMove(0, -1); break;
