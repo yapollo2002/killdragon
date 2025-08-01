@@ -1,7 +1,7 @@
 body, html {
     background-color: #333;
     color: #fff;
-    font-family: sans-serif;
+    font-family: sans-serif, Arial;
     text-align: center;
     height: 100%;
     width: 100%;
@@ -32,28 +32,6 @@ canvas {
     max-width: 550px;
     max-height: 550px;
     border: 2px solid #555;
-}
-
-/* --- NEW STATUS BAR STYLES --- */
-#status {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 3.5vmin;
-    margin: 1.5vh 0;
-    height: 40px; /* Give the status bar a consistent height */
-}
-
-#collected-items-icons {
-    display: flex;
-    align-items: center;
-    margin-left: 10px; /* Space after the text */
-    height: 100%;
-}
-
-.collected-icon {
-    height: 100%; /* Make icons fill the height of the status bar */
-    margin: 0 3px; /* Add some space between icons */
 }
 
 #controls {

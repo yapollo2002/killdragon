@@ -10,18 +10,9 @@
 
 <div id="game-container">
     <h1>Dragon Slayer</h1>
-    <canvas id="game-board"></canvas>
 
-    <!-- The status bar now looks for the stick icon -->
-    <div id="status">
-        <span>Items Collected: </span>
-        <div id="collected-items-icons">
-            <img id="icon-wire" src="wire.png" class="collected-icon" style="display: none;">
-            <!-- THIS LINE HAS BEEN CHANGED -->
-            <img id="icon-stick" src="stick.png" class="collected-icon" style="display: none;">
-            <img id="icon-stone" src="stone.png" class="collected-icon" style="display: none;">
-        </div>
-    </div>
+    <!-- The canvas is where all game action and stats will be drawn -->
+    <canvas id="game-board"></canvas>
 
     <div id="controls">
         <button id="up-btn" class="control-btn" onclick="handleMove(0, -1)">▲</button>
