@@ -23,19 +23,16 @@ const player = {
     width: TILE_SIZE, height: TILE_SIZE,
     speed: 4, dx: 0, dy: 0, isMoving: false
 };
-
 const cat = {
     img: catImg, x: TILE_SIZE * 18, y: TILE_SIZE * 1,
     width: TILE_SIZE, height: TILE_SIZE, speed: 4.4, dx: 0, dy: 0,
     decisionInterval: 50, lastDecisionTime: 0
 };
-
 const robot = {
     img: robotImg, x: TILE_SIZE * 18, y: TILE_SIZE * 13,
     width: TILE_SIZE, height: TILE_SIZE, speed: 3.6, dx: 0, dy: 0,
     decisionInterval: 100, lastDecisionTime: 0
 };
-
 const enemies = [cat, robot];
 const levelMap = [
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -66,20 +63,20 @@ function checkPlayerEnemyCollision() { enemies.forEach(enemy => { if (player.x <
 function clearCanvas() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
 function movePlayer() { player.x += player.dx; player.y += player.dy; handleWallCollisions(player); }
 
-// *** NEW AND IMPROVED AI LOGIC ***
+// *** THE REAL, FINAL, NO-FREEZE AI LOGIC ***
 function moveEnemies(currentTime) {
     enemies.forEach(enemy => {
         const isStuck = enemy.dx === 0 && enemy.dy === 0;
 
+        // An enemy makes a new decision if its timer is up, OR if it's currently not moving.
         if (isStuck || (currentTime - enemy.lastDecisionTime > enemy.decisionInterval)) {
             enemy.lastDecisionTime = currentTime;
 
             const xDist = player.x - enemy.x;
             const yDist = player.y - enemy.y;
 
-            let primaryX = 0, primaryY = 0;
-            let secondaryX = 0, secondaryY = 0;
-
+            // Determine primary and secondary directions towards the player
+            let primaryX = 0, primaryY = 0, secondaryX = 0, secondaryY = 0;
             if (Math.abs(xDist) > Math.abs(yDist)) {
                 primaryX = Math.sign(xDist) * enemy.speed;
                 secondaryY = Math.sign(yDist) * enemy.speed;
@@ -88,18 +85,47 @@ function moveEnemies(currentTime) {
                 secondaryX = Math.sign(xDist) * enemy.speed;
             }
 
-            if (!willCollide(enemy, primaryX, primaryY)) {
-                enemy.dx = primaryX;
-                enemy.dy = primaryY;
-            } else if (!willCollide(enemy, secondaryX, secondaryY)) {
-                enemy.dx = secondaryX;
-                enemy.dy = secondaryY;
+            // Try to move in the primary direction
+            if (primaryX !== 0 || primaryY !== 0) {
+                 if (!willCollide(enemy, primaryX, primaryY)) {
+                    enemy.dx = primaryX;
+                    enemy.dy = primaryY;
+                    return; // Decision made, exit function for this enemy
+                }
+            }
+
+            // If primary is blocked, try secondary direction
+            if (secondaryX !== 0 || secondaryY !== 0) {
+                if (!willCollide(enemy, secondaryX, secondaryY)) {
+                    enemy.dx = secondaryX;
+                    enemy.dy = secondaryY;
+                    return; // Decision made
+                }
+            }
+
+            // ** THE UNSTUCK MANEUVER **
+            // If BOTH primary and secondary paths are blocked, find any valid random move to escape.
+            const possibleMoves = [
+                { dx: enemy.speed, dy: 0 }, { dx: -enemy.speed, dy: 0 },
+                { dx: 0, dy: enemy.speed }, { dx: 0, dy: -enemy.speed }
+            ];
+
+            const validMoves = possibleMoves.filter(move => !willCollide(enemy, move.dx, move.dy));
+
+            if (validMoves.length > 0) {
+                const randomMove = validMoves[Math.floor(Math.random() * validMoves.length)];
+                enemy.dx = randomMove.dx;
+                enemy.dy = randomMove.dy;
             } else {
+                // If completely trapped (should be rare), do nothing.
                 enemy.dx = 0;
                 enemy.dy = 0;
             }
         }
+    });
 
+    // Move all enemies every frame based on their last decision
+    enemies.forEach(enemy => {
         enemy.x += enemy.dx;
         enemy.y += enemy.dy;
         handleWallCollisions(enemy);
@@ -124,22 +150,11 @@ function willCollide(character, dx, dy) {
 }
 
 function handleWallCollisions(character) {
-    const originalDx = character.dx;
-    const originalDy = character.dy;
-    for (let r = 0; r < MAP_NUM_ROWS; r++) {
-        for (let c = 0; c < MAP_NUM_COLS; c++) {
-            if (levelMap[r][c] === 1) {
-                const wall = { x: c * TILE_SIZE, y: r * TILE_SIZE, width: TILE_SIZE, height: TILE_SIZE };
-                if (character.x < wall.x + wall.width && character.x + character.width > wall.x &&
-                    character.y < wall.y + wall.height && character.y + character.height > wall.y) {
-                    character.x -= originalDx;
-                    character.y -= originalDy;
-                    character.dx = 0;
-                    character.dy = 0;
-                    return;
-                }
-            }
-        }
+    if (willCollide(character, 0, 0)) {
+        character.x -= character.dx;
+        character.y -= character.dy;
+        character.dx = 0;
+        character.dy = 0;
     }
 }
 
