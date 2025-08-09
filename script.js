@@ -1,6 +1,7 @@
 // --- Element Selection ---
 const canvas = document.getElementById('game-board');
 const ctx = canvas.getContext('2d');
+const newGameBtn = document.getElementById('new-game-btn');
 
 // --- Game State & Images ---
 const gridSize = 11;
@@ -8,10 +9,13 @@ let cellSize;
 let gameOver = false;
 let dragonDecisionInterval;
 
-// Game variables for lives and carrots
+const GAME_DURATION = 60;
+let remainingTime = GAME_DURATION;
+let countdownInterval;
+
 let playerLives = 0;
-let carrots = []; // This will store the coordinates of each carrot
-let canAttack = true; // A cooldown to prevent rapid damage to the dragon
+let carrots = [];
+let canAttack = true;
 
 const player = { x: 0, y: 0 };
 const dragon = {
@@ -26,13 +30,6 @@ const dragonImage = new Image();
 const grassImage = new Image();
 const carrotImage = new Image();
 const heartImage = new Image();
-
-const itemImages = {
-    wire: null, // These are now gone
-    stick: null, // These are now gone
-    stone: null, // These are now gone
-    carrot: carrotImage // We still need this for drawing
-};
 
 // This function synchronizes the drawing surface with the CSS size
 function resizeCanvas() {
@@ -117,12 +114,18 @@ function drawEndScreen(message) {
     ctx.font = `bold ${cellSize}px Arial`;
     ctx.textAlign = 'center';
     ctx.fillText(message, canvas.width / 2, canvas.height / 2);
+
+    newGameBtn.style.display = 'block'; // Show the New Game button
 }
 
-// --- DRAGON MOVEMENT ---
+// --- DRAGON MOVEMENT & GAME LOOP ---
 function gameLoop() {
-    if (gameOver === 'win' || gameOver === 'lose') {
-        drawEndScreen(gameOver === 'win' ? 'YOU WIN!' : 'YOU LOSE!');
+    if (gameOver === 'win') {
+        drawEndScreen('YOU WIN!');
+        return;
+    }
+    if (gameOver === 'lose') {
+        drawEndScreen('YOU LOSE!');
         return;
     }
 
@@ -130,6 +133,8 @@ function gameLoop() {
         const dx = dragon.targetX - dragon.pixelX;
         const dy = dragon.targetY - dragon.pixelY;
         const distance = Math.sqrt(dx * dx + dy * dy);
+
+        // Dragon animation smoothing
         if (distance < dragon.speed) {
             dragon.pixelX = dragon.targetX;
             dragon.pixelY = dragon.targetY;
@@ -175,11 +180,11 @@ function handleMove(dx, dy) {
 
     // Check for dragon collision
     if (dragon.alive && player.x === dragon.gridX && player.y === dragon.gridY && canAttack) {
-        if (playerLives > 0) { // Can only attack if you have at least one life
+        if (playerLives > 0) {
             dragon.lives--;
-            playerLives--; // Spending a life to attack
-            canAttack = false; // Start attack cooldown
-            setTimeout(() => { canAttack = true; }, 1000); // 1-second cooldown
+            playerLives--;
+            canAttack = false;
+            setTimeout(() => { canAttack = true; }, 1000);
 
             if (dragon.lives <= 0) {
                 dragon.alive = false;
@@ -200,8 +205,9 @@ function setupGame() {
     dragon.lives = 3;
     dragon.alive = true;
     remainingTime = GAME_DURATION;
+    newGameBtn.style.display = 'none'; // Hide the restart button
 
-    // Set a random 3x3 patrol zone for the dragon
+    // Set a random patrol zone for the dragon
     dragon.zoneX = Math.floor(Math.random() * (gridSize - 2));
     dragon.zoneY = Math.floor(Math.random() * (gridSize - 2));
     dragon.gridX = dragon.zoneX + Math.floor(Math.random() * 3);
@@ -212,7 +218,7 @@ function setupGame() {
     dragon.targetY = dragon.pixelY;
     dragon.isMoving = false;
 
-    // Place the player randomly, not in the dragon's zone
+    // Place the player randomly
     do {
         player.x = Math.floor(Math.random() * gridSize);
         player.y = Math.floor(Math.random() * gridSize);
@@ -221,7 +227,7 @@ function setupGame() {
         player.y >= dragon.zoneY && player.y < dragon.zoneY + 3
     );
 
-    // Place 2 to 5 carrots randomly, not in dragon's zone or on player
+    // Place 2 to 5 carrots randomly
     const carrotCount = Math.floor(Math.random() * 4) + 2;
     for (let i = 0; i < carrotCount; i++) {
         let placed = false;
@@ -238,27 +244,33 @@ function setupGame() {
         }
     }
 
-    // Clear old intervals and start new ones
+    // Start dragon's decision timer
     clearInterval(dragonDecisionInterval);
-    dragonDecisionInterval = setInterval(decideDragonMove, 2500); // Dragon chooses new target every 2.5 seconds
-
-    // Countdown timer logic
     clearInterval(countdownInterval);
+    dragonDecisionInterval = setInterval(decideDragonMove, 2500);
     countdownInterval = setInterval(() => {
         remainingTime--;
-        if (remainingTime <= 0) {
-            gameOver = 'lose'; // Game lost due to time out
+        if (remainingTime <= 0 && gameOver !== 'win') {
+            gameOver = 'lose';
             clearInterval(dragonDecisionInterval);
             clearInterval(countdownInterval);
         }
     }, 1000);
+
+    resizeCanvas();
 }
 
-// Loads a single image from a file and returns a Promise
+// A function that loads a single image from a file and returns a Promise
 function loadImage(imageObject, src) {
     return new Promise((resolve, reject) => {
-        imageObject.onload = () => resolve(imageObject);
-        imageObject.onerror = reject;
+        imageObject.onload = () => {
+            console.log(`Loaded ${src}`);
+            resolve(imageObject);
+        };
+        imageObject.onerror = () => {
+            console.error(`Failed to load ${src}`);
+            reject(new Error(`Failed to load image: ${src}`));
+        };
         imageObject.src = src;
     });
 }
@@ -272,11 +284,11 @@ Promise.all([
     loadImage(heartImage, 'heart.png')
 ]).then(() => {
     console.log("All images loaded successfully!");
-    resizeCanvas();
+    // Initial setup and start of the game loop
     setupGame();
-    requestAnimationFrame(gameLoop); // Start the main game loop
+    requestAnimationFrame(gameLoop);
 
-    // Activate controls after everything is ready
+    // Activate controls
     document.addEventListener('keydown', (e) => {
         switch (e.key) {
             case 'ArrowUp': handleMove(0, -1); break;
@@ -287,19 +299,9 @@ Promise.all([
     });
     window.onresize = resizeCanvas;
 
-    // Add event listeners for touch controls
-    document.getElementById('up-btn').onclick = () => handleMove(0, -1);
-    document.getElementById('down-btn').onclick = () => handleMove(0, 1);
-    document.getElementById('left-btn').onclick = () => handleMove(-1, 0);
-    document.getElementById('right-btn').onclick = () => handleMove(1, 0);
-
-    // Add listener for the New Game button
-    document.getElementById('new-game-btn').onclick = () => {
-        setupGame();
-        requestAnimationFrame(gameLoop); // Restart the loop
-    };
-
+    // Add the restart functionality to the button
+    newGameBtn.addEventListener('click', setupGame);
 }).catch(error => {
-    console.error("Error loading images:", error);
-    alert("Error loading game images. Make sure all .png files are in the correct folder.");
+    console.error("Error during game initialization:", error);
+    alert("Error loading game images. Please make sure all .png files are in the same folder.");
 });

@@ -32,6 +32,7 @@ canvas {
     max-width: 550px;
     max-height: 550px;
     border: 2px solid #555;
+    position: relative;
 }
 
 #controls {
@@ -63,4 +64,20 @@ canvas {
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+#new-game-btn {
+    margin-top: 20px;
+    padding: 10px 20px;
+    font-size: 24px;
+    font-weight: bold;
+    color: white;
+    background-color: #4CAF50;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+#new-game-btn:hover {
+    background-color: #45a049;
 }
