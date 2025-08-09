@@ -228,7 +228,7 @@ function setupGame() {
     );
 
     // Place 2 to 5 carrots randomly
-    const carrotCount = Math.floor(Math.random() * 4) + 2;
+    const carrotCount = Math.floor(Math.random() * 4) + 3;
     for (let i = 0; i < carrotCount; i++) {
         let placed = false;
         while (!placed) {
